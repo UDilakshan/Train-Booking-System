@@ -1,0 +1,51 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-railway_reservation}
+      MYSQL_USER: ${MYSQL_USER:-railway}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-railway}
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-p${MYSQL_ROOT_PASSWORD:-root}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: 'Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-railway_reservation};User=${MYSQL_USER:-railway};Password=${MYSQL_PASSWORD:-railway};'
+      Jwt__Secret: ${JWT_SECRET:-change-me-to-a-long-random-string-in-production-min-32-chars}
+      Jwt__ExpiresInMinutes: ${JWT_EXPIRES_IN_MINUTES:-480}
+      Jwt__Issuer: railway-reservation
+      Cors__Origin: ${CORS_ORIGIN:-http://localhost:3000}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@railway.lk}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe123!}
+      ASPNETCORE_ENVIRONMENT: Production
+    ports:
+      - '4000:4000'
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '3000:80'
+
+volumes:
+  mysql_data:

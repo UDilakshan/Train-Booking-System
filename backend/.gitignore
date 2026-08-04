@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+.vs/
+appsettings.Local.json
+dev-mysql.mjs
+node_modules/
+*.log
+package.json
+package-lock.json
